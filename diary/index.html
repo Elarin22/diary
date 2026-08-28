@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>플랜두씨 다이어리</title>
+<style>
+  :root{
+    --paper:#12151C; --paper-line:#2A2F3A; --ink:#ECEEF3; --ink-soft:#9AA3B5;
+    --accent:#3E9C86; --accent-soft:#16332C; --wine:#C1587A; --wine-soft:#2E1620;
+    --card:#1A1F29; --surface:#10141C; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Malgun Gothic', -apple-system, sans-serif; padding:24px 16px 60px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  h1{ font-size:24px; margin:0 0 4px; }
+  .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:20px; }
+  section.card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:18px; margin-bottom:18px; }
+  section.card h2{ font-size:15px; margin:0 0 12px; }
+  input, textarea, select{ font-family:inherit; font-size:14px; padding:7px 9px; border:1px solid var(--paper-line); border-radius:6px; background:var(--surface); color:var(--ink); }
+  label{ font-size:12px; color:var(--ink-soft); display:block; margin-bottom:3px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px; }
+  .field{ display:flex; flex-direction:column; gap:2px; }
+  button{ font-family:inherit; font-size:13px; font-weight:700; border:none; border-radius:6px; padding:8px 14px; cursor:pointer; }
+  .btn-primary{ background:var(--accent); color:#0B120F; }
+  .btn-secondary{ background:transparent; color:var(--ink-soft); border:1px solid var(--paper-line); }
+  .btn-danger{ background:transparent; color:var(--wine); border:1px solid var(--wine); }
+  .btn-small{ padding:4px 9px; font-size:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; color:var(--ink-soft); font-size:11px; border-bottom:2px solid var(--ink); padding:6px; }
+  td{ padding:8px 6px; border-bottom:1px solid var(--paper-line); vertical-align:top; }
+  tr.plan-row{ cursor:pointer; }
+  tr.plan-row.selected{ background:var(--accent-soft); }
+  .badge{ display:inline-block; font-size:11px; padding:2px 7px; border-radius:9px; }
+  .badge.done{ background:var(--accent-soft); color:var(--accent); }
+  .badge.pending{ background:var(--wine-soft); color:var(--wine); }
+  #errorArea{ display:none; background:var(--wine-soft); border:1px solid var(--wine); color:var(--wine); border-radius:8px; padding:9px 12px; font-size:13px; margin-bottom:14px; white-space:pre-line; }
+  #errorArea.show{ display:block; }
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .overlay.hidden{ display:none; }
+  .modal{ background:var(--card); border-radius:10px; padding:22px; max-width:380px; width:92%; }
+  .modal h3{ margin:0 0 14px; font-size:16px; }
+  .persona-btns{ display:flex; gap:10px; margin-top:16px; }
+  .persona-btns button{ flex:1; padding:14px; font-size:14px; }
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .summary-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin-top:10px; }
+  .summary-item{ background:var(--surface); border:1px solid var(--paper-line); border-radius:8px; padding:9px 11px; }
+  .summary-item .num{ font-size:18px; font-weight:700; }
+  .summary-item .lbl{ font-size:11px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px;">
+    <div>
+      <h1>플랜두씨 다이어리</h1>
+      <div class="sub">Plan → ToDo → Do → See</div>
+    </div>
+    <div class="toolbar">
+      <span id="personaBadge" class="badge pending"></span>
+      <button class="btn-secondary btn-small" id="switchPersonaBtn">인물 전환</button>
+    </div>
+  </header>
+
+  <div id="errorArea"></div>
+
+  <section class="card">
+    <h2>백업 / 검사 도구</h2>
+    <div class="toolbar">
+      <button class="btn-secondary" id="exportBtn">내보내기</button>
+      <label class="btn-secondary" style="cursor:pointer;">가져오기<input type="file" id="importFile" accept="application/json" style="display:none;"></label>
+      <button class="btn-danger" id="resetBtn">전체 삭제</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Plan</h2>
+    <form id="planForm" class="row">
+      <div class="field"><label>제목</label><input id="p_title" required></div>
+      <div class="field"><label>시작일</label><input id="p_start" type="date" required></div>
+      <div class="field"><label>종료일</label><input id="p_end" type="date" required></div>
+      <div class="field"><label>성공 기준</label><input id="p_criteria"></div>
+      <div class="field"><label>우선순위</label><input id="p_priority" type="number" style="width:70px;"></div>
+      <div class="field"><label>예상 시간(h)</label><input id="p_hours" type="number" step="0.1" style="width:90px;"></div>
+      <button class="btn-primary" type="submit">Plan 추가</button>
+    </form>
+    <table>
+      <thead><tr><th>제목</th><th>기간</th><th>우선순위</th><th>예상(h)</th><th></th></tr></thead>
+      <tbody id="planBody"></tbody>
+    </table>
+  </section>
+
+  <section class="card" id="todoSection" style="display:none;">
+    <h2>ToDo — <span id="selectedPlanTitle"></span></h2>
+    <form id="todoForm" class="row">
+      <div class="field"><label>제목</label><input id="t_title" required></div>
+      <div class="field"><label>마감일</label><input id="t_due" type="date"></div>
+      <div class="field"><label>우선순위</label><input id="t_priority" type="number" style="width:70px;"></div>
+      <div class="field"><label>태그(쉼표구분)</label><input id="t_tags" style="width:130px;"></div>
+      <div class="field"><label>예상(분)</label><input id="t_minutes" type="number" style="width:80px;"></div>
+      <button class="btn-primary" type="submit">ToDo 추가</button>
+    </form>
+    <div class="row" style="margin-top:10px;">
+      <div class="field"><label>검색</label><input id="t_search" placeholder="제목 검색"></div>
+      <div class="field"><label>상태</label>
+        <select id="t_filterStatus"><option value="">전체</option><option value="in_progress">진행중</option><option value="done">완료</option></select>
+      </div>
+      <div class="field"><label>정렬</label>
+        <select id="t_sort"><option value="created_at">생성순</option><option value="due_date">마감일</option><option value="priority">우선순위</option><option value="title">제목</option></select>
+      </div>
+      <button class="btn-secondary btn-small" id="t_applyBtn" type="button">적용</button>
+    </div>
+    <table>
+      <thead><tr><th>제목</th><th>마감</th><th>우선순위</th><th>태그</th><th>상태</th><th></th></tr></thead>
+      <tbody id="todoBody"></tbody>
+    </table>
+  </section>
+
+  <section class="card" id="seeSection" style="display:none;">
+    <h2>See — <span id="seePlanTitle"></span></h2>
+    <button class="btn-secondary" id="computeSeeBtn">집계 계산</button>
+    <div class="summary-grid" id="seeGrid"></div>
+    <div class="field" style="margin-top:12px;">
+      <label>다음 Plan으로 넘길 조정 내용</label>
+      <textarea id="nextPlanNote" rows="2" style="width:100%;"></textarea>
+    </div>
+    <button class="btn-primary" id="saveSeeBtn" style="margin-top:8px;">다음 Plan으로 넘기기 저장</button>
+  </section>
+</div>
+
+<div class="overlay" id="personaOverlay">
+  <div class="modal">
+    <h3>공개 심사 — 합성 인물 선택</h3>
+    <p style="font-size:13px; color:var(--ink-soft); margin:0;">계정·로그인 없이 A 또는 B 인물로 이 브라우저 임시 세션이 만들어집니다. 서버가 범위를 강제로 격리합니다.</p>
+    <div class="persona-btns">
+      <button class="btn-primary" id="pickA">인물 A</button>
+      <button class="btn-primary" id="pickB">인물 B</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="doModal">
+  <div class="modal">
+    <h3>완료 기록 (Do)</h3>
+    <div class="field"><label>시작 시각</label><input id="do_start" type="datetime-local"></div>
+    <div class="field" style="margin-top:8px;"><label>종료 시각</label><input id="do_end" type="datetime-local"></div>
+    <div class="field" style="margin-top:8px;"><label>실제 소요(분)</label><input id="do_minutes" type="number"></div>
+    <div class="field" style="margin-top:8px;"><label>막힌 이유 (없으면 비움)</label><input id="do_blocked"></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+      <button class="btn-secondary" id="doCancel">취소</button>
+      <button class="btn-primary" id="doSubmit">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="confirmModal">
+  <div class="modal">
+    <p id="confirmText" style="font-size:14px;"></p>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-secondary" id="confirmCancel">취소</button>
+      <button class="btn-danger" id="confirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let persona = null;
+let plans = [];
+let selectedPlanId = null;
+let todos = [];
+let pendingDoTodoId = null;
+let pendingDoKey = null;
+let pendingConfirm = null;
+
+function showError(msg){ $('errorArea').textContent = msg; $('errorArea').classList.add('show'); }
+function clearError(){ $('errorArea').classList.remove('show'); $('errorArea').textContent=''; }
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function api(path, opts={}){
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
+    credentials: 'same-origin',
+  });
+  let body = null;
+  try{ body = await res.json(); }catch(_){}
+  if(!res.ok){
+    const msg = (body && body.error) ? body.error : `요청 실패 (${res.status})`;
+    throw new Error(msg);
+  }
+  return body;
+}
+
+// ---------- persona / session ----------
+async function initSession(){
+  const s = await api('/api/session');
+  persona = s.persona;
+  if(!persona){
+    $('personaOverlay').classList.remove('hidden');
+  } else {
+    $('personaOverlay').classList.add('hidden');
+    renderPersonaBadge();
+    await loadPlans();
+  }
+}
+function renderPersonaBadge(){
+  const b = $('personaBadge');
+  b.textContent = `인물 ${persona}`;
+  b.className = 'badge ' + (persona === 'A' ? 'done' : 'pending');
+}
+$('pickA').addEventListener('click', ()=> choosePersona('A'));
+$('pickB').addEventListener('click', ()=> choosePersona('B'));
+async function choosePersona(p){
+  try{
+    await api('/api/session', { method:'POST', body: JSON.stringify({ persona: p }) });
+    persona = p;
+    $('personaOverlay').classList.add('hidden');
+    renderPersonaBadge();
+    await loadPlans();
+  }catch(e){ showError(e.message); }
+}
+$('switchPersonaBtn').addEventListener('click', async ()=>{
+  await api('/api/session', { method:'DELETE' });
+  location.reload();
+});
+
+// ---------- plans ----------
+async function loadPlans(){
+  clearError();
+  try{
+    plans = await api('/api/plans');
+    renderPlans();
+  }catch(e){ showError(e.message); }
+}
+function renderPlans(){
+  const body = $('planBody');
+  body.innerHTML = '';
+  for(const p of plans){
+    const tr = document.createElement('tr');
+    tr.className = 'plan-row' + (p.id === selectedPlanId ? ' selected' : '');
+    tr.innerHTML = `
+      <td>${escapeHtml(p.title)}</td>
+      <td>${escapeHtml(p.period_start)} ~ ${escapeHtml(p.period_end)}</td>
+      <td>${p.priority ?? '-'}</td>
+      <td>${p.expected_hours ?? '-'}</td>
+      <td><button class="btn-danger btn-small" data-del="${p.id}">삭제</button></td>`;
+    tr.addEventListener('click', (e)=>{ if(e.target.dataset.del) return; selectPlan(p); });
+    body.appendChild(tr);
+  }
+  body.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openConfirm('이 Plan과 연결된 ToDo·Do 기록이 모두 삭제됩니다. 계속할까요?', async ()=>{
+        await api(`/api/plans?id=${btn.dataset.del}`, { method:'DELETE' });
+        if(selectedPlanId === btn.dataset.del){ selectedPlanId = null; $('todoSection').style.display='none'; $('seeSection').style.display='none'; }
+        await loadPlans();
+      });
+    });
+  });
+}
+$('planForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  clearError();
+  try{
+    await api('/api/plans', { method:'POST', body: JSON.stringify({
+      title: $('p_title').value.trim(),
+      period_start: $('p_start').value,
+      period_end: $('p_end').value,
+      success_criteria: $('p_criteria').value.trim(),
+      priority: $('p_priority').value ? Number($('p_priority').value) : null,
+      expected_hours: $('p_hours').value ? Number($('p_hours').value) : null,
+    })});
+    $('planForm').reset();
+    await loadPlans();
+  }catch(e){ showError(e.message); }
+});
+
+function selectPlan(p){
+  selectedPlanId = p.id;
+  $('selectedPlanTitle').textContent = p.title;
+  $('seePlanTitle').textContent = p.title;
+  $('todoSection').style.display = 'block';
+  $('seeSection').style.display = 'block';
+  renderPlans();
+  loadTodos();
+}
+
+// ---------- todos ----------
+async function loadTodos(){
+  clearError();
+  const params = new URLSearchParams({ plan_id: selectedPlanId });
+  const status = $('t_filterStatus').value;
+  const q = $('t_search').value.trim();
+  const sort = $('t_sort').value;
+  if(status) params.set('status', status);
+  if(q) params.set('q', q);
+  if(sort) params.set('sort', sort);
+  try{
+    todos = await api('/api/todos?' + params.toString());
+    renderTodos();
+  }catch(e){ showError(e.message); }
+}
+function renderTodos(){
+  const body = $('todoBody');
+  body.innerHTML = '';
+  if(todos.length === 0){
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--ink-soft);">기록이 없습니다.</td></tr>';
+    return;
+  }
+  for(const t of todos){
+    const tr = document.createElement('tr');
+    const doneBadge = t.status === 'done' ? '<span class="badge done">완료</span>' : '<span class="badge pending">진행중</span>';
+    tr.innerHTML = `
+      <td>${escapeHtml(t.title)}</td>
+      <td>${escapeHtml(t.due_date || '-')}</td>
+      <td>${t.priority ?? '-'}</td>
+      <td>${(t.tags||[]).map(escapeHtml).join(', ')}</td>
+      <td>${doneBadge}</td>
+      <td>
+        <button class="btn-secondary btn-small" data-toggle="${t.id}" data-status="${t.status}">${t.status==='done'?'되돌리기':'완료'}</button>
+        <button class="btn-danger btn-small" data-del="${t.id}">삭제</button>
+      </td>`;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.status === 'done'){
+        uncompleteTodo(btn.dataset.toggle);
+      } else {
+        openDoModal(btn.dataset.toggle);
+      }
+    });
+  });
+  body.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openConfirm('이 ToDo를 삭제할까요?', async ()=>{
+        await api(`/api/todos?id=${btn.dataset.del}`, { method:'DELETE' });
+        await loadTodos();
+      });
+    });
+  });
+}
+$('todoForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  clearError();
+  try{
+    await api('/api/todos', { method:'POST', body: JSON.stringify({
+      plan_id: selectedPlanId,
+      title: $('t_title').value.trim(),
+      due_date: $('t_due').value || null,
+      priority: $('t_priority').value ? Number($('t_priority').value) : null,
+      tags: $('t_tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+      expected_minutes: $('t_minutes').value ? Number($('t_minutes').value) : null,
+    })});
+    $('todoForm').reset();
+    await loadTodos();
+  }catch(e){ showError(e.message); }
+});
+$('t_applyBtn').addEventListener('click', loadTodos);
+async function uncompleteTodo(id){
+  clearError();
+  try{
+    await api(`/api/todos?id=${id}`, { method:'PUT', body: JSON.stringify({ status:'in_progress' }) });
+    await loadTodos();
+  }catch(e){ showError(e.message); }
+}
+
+// ---------- Do modal (idempotency) ----------
+function openDoModal(todoId){
+  pendingDoTodoId = todoId;
+  pendingDoKey = crypto.randomUUID(); // 이 완료 시도 전체에서 재시도해도 같은 key 재사용
+  const now = new Date();
+  $('do_start').value = toLocalInput(new Date(now.getTime() - 30*60000));
+  $('do_end').value = toLocalInput(now);
+  $('do_minutes').value = 30;
+  $('do_blocked').value = '';
+  $('doModal').classList.remove('hidden');
+}
+function toLocalInput(d){
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+$('doCancel').addEventListener('click', ()=>{ $('doModal').classList.add('hidden'); pendingDoTodoId=null; pendingDoKey=null; });
+$('doSubmit').addEventListener('click', async ()=>{
+  clearError();
+  try{
+    await api('/api/do', { method:'POST', body: JSON.stringify({
+      todo_id: pendingDoTodoId,
+      started_at: new Date($('do_start').value).toISOString(),
+      ended_at: new Date($('do_end').value).toISOString(),
+      actual_minutes: Number($('do_minutes').value),
+      blocked_reason: $('do_blocked').value.trim() || null,
+      idempotency_key: pendingDoKey, // 같은 key로 재시도해도 서버가 중복을 막음
+    })});
+    $('doModal').classList.add('hidden');
+    pendingDoTodoId = null; pendingDoKey = null;
+    await loadTodos();
+  }catch(e){ showError(e.message); }
+});
+
+// ---------- See ----------
+$('computeSeeBtn').addEventListener('click', async ()=>{
+  clearError();
+  try{
+    const agg = await api(`/api/see?plan_id=${selectedPlanId}`);
+    renderSee(agg);
+  }catch(e){ showError(e.message); }
+});
+function renderSee(agg){
+  const grid = $('seeGrid');
+  grid.innerHTML = '';
+  const items = [
+    ['계획 수', agg.plan_count], ['완료 수', agg.done_count], ['지연 수', agg.delayed_count],
+    ['막힘 수', agg.blocked_count], ['예상(분)', agg.expected_minutes_sum], ['실제(분)', agg.actual_minutes_sum],
+    ['차이(분)', agg.diff_minutes],
+  ];
+  for(const [lbl, num] of items){
+    const div = document.createElement('div');
+    div.className = 'summary-item';
+    div.innerHTML = `<div class="num">${escapeHtml(num)}</div><div class="lbl">${escapeHtml(lbl)}</div>`;
+    grid.appendChild(div);
+  }
+}
+$('saveSeeBtn').addEventListener('click', async ()=>{
+  clearError();
+  const plan = plans.find(p=>p.id === selectedPlanId);
+  if(!plan) return;
+  try{
+    await api('/api/see', { method:'POST', body: JSON.stringify({
+      plan_id: selectedPlanId,
+      period_start: plan.period_start,
+      period_end: plan.period_end,
+      next_plan_note: $('nextPlanNote').value.trim(),
+    })});
+    $('nextPlanNote').value = '';
+  }catch(e){ showError(e.message); }
+});
+
+// ---------- backup ----------
+$('exportBtn').addEventListener('click', async ()=>{
+  clearError();
+  try{
+    const data = await api('/api/backup?action=export');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `plando-${persona}-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ showError(e.message); }
+});
+$('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  clearError();
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(_){ showError('가져오기 실패: 올바른 JSON 파일이 아닙니다.'); e.target.value=''; return; }
+    try{
+      const r = await api('/api/backup?action=import', { method:'POST', body: JSON.stringify(parsed) });
+      showError(`가져오기 결과: ${JSON.stringify(r.result)}`);
+      await loadPlans();
+      if(selectedPlanId) await loadTodos();
+    }catch(err){ showError('가져오기 실패: ' + err.message); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+$('resetBtn').addEventListener('click', ()=>{
+  openConfirm('현재 인물의 모든 Plan·ToDo·Do·See 기록을 삭제할까요? 되돌릴 수 없습니다.', async ()=>{
+    await api('/api/backup?action=reset', { method:'POST' });
+    selectedPlanId = null;
+    $('todoSection').style.display='none'; $('seeSection').style.display='none';
+    await loadPlans();
+  });
+});
+
+// ---------- confirm modal ----------
+function openConfirm(text, onOk){
+  $('confirmText').textContent = text;
+  pendingConfirm = onOk;
+  $('confirmModal').classList.remove('hidden');
+}
+$('confirmCancel').addEventListener('click', ()=>{ $('confirmModal').classList.add('hidden'); pendingConfirm=null; });
+$('confirmOk').addEventListener('click', async ()=>{
+  if(pendingConfirm) await pendingConfirm();
+  $('confirmModal').classList.add('hidden');
+  pendingConfirm = null;
+});
+
+// ---------- init ----------
+initSession().catch(e=> showError(e.message));
+</script>
+</body>
+</html>
