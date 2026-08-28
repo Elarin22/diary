@@ -6,23 +6,23 @@
 <title>플랜두씨 다이어리</title>
 <style>
   :root{
-    --paper:#12151C; --paper-line:#2A2F3A; --ink:#ECEEF3; --ink-soft:#9AA3B5;
-    --accent:#3E9C86; --accent-soft:#16332C; --wine:#C1587A; --wine-soft:#2E1620;
-    --card:#1A1F29; --surface:#10141C; --radius:10px;
+    --paper:#F7F2EC; --paper-line:#E3D8C9; --ink:#3B2A1E; --ink-soft:#8B7862;
+    --accent:#8A5A34; --accent-soft:#EFE1D0; --wine:#A2453A; --wine-soft:#F5E4E1;
+    --card:#FFFDFB; --surface:#FBF6EF; --radius:10px;
   }
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Malgun Gothic', -apple-system, sans-serif; padding:24px 16px 60px; }
   .wrap{ max-width:920px; margin:0 auto; }
   h1{ font-size:24px; margin:0 0 4px; }
   .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:20px; }
-  section.card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:18px; margin-bottom:18px; }
+  section.card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:18px; margin-bottom:18px; box-shadow:0 2px 8px rgba(139,94,52,0.08); }
   section.card h2{ font-size:15px; margin:0 0 12px; }
   input, textarea, select{ font-family:inherit; font-size:14px; padding:7px 9px; border:1px solid var(--paper-line); border-radius:6px; background:var(--surface); color:var(--ink); }
   label{ font-size:12px; color:var(--ink-soft); display:block; margin-bottom:3px; }
   .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px; }
   .field{ display:flex; flex-direction:column; gap:2px; }
   button{ font-family:inherit; font-size:13px; font-weight:700; border:none; border-radius:6px; padding:8px 14px; cursor:pointer; }
-  .btn-primary{ background:var(--accent); color:#0B120F; }
+  .btn-primary{ background:var(--accent); color:#FFFDFB; }
   .btn-secondary{ background:transparent; color:var(--ink-soft); border:1px solid var(--paper-line); }
   .btn-danger{ background:transparent; color:var(--wine); border:1px solid var(--wine); }
   .btn-small{ padding:4px 9px; font-size:12px; }
