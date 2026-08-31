@@ -14,14 +14,15 @@
   body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Malgun Gothic', -apple-system, sans-serif; padding:24px 16px 60px; }
   .wrap{ max-width:920px; margin:0 auto; }
   h1{ font-size:24px; margin:0 0 4px; }
-  .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:20px; }
+  .sub{ color:var(--ink-soft); font-size:13px; margin-bottom:4px; }
+  #publicNotice{ background:var(--accent-soft); border:1px solid var(--paper-line); border-radius:8px; padding:9px 12px; font-size:12.5px; color:var(--ink); margin-bottom:18px; }
   section.card{ background:var(--card); border:1px solid var(--paper-line); border-radius:var(--radius); padding:18px; margin-bottom:18px; box-shadow:0 2px 8px rgba(139,94,52,0.08); }
   section.card h2{ font-size:15px; margin:0 0 12px; }
   input, textarea, select{ font-family:inherit; font-size:14px; padding:7px 9px; border:1px solid var(--paper-line); border-radius:6px; background:var(--surface); color:var(--ink); }
   label{ font-size:12px; color:var(--ink-soft); display:block; margin-bottom:3px; }
   .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px; }
   .field{ display:flex; flex-direction:column; gap:2px; }
-  button{ font-family:inherit; font-size:13px; font-weight:700; border:none; border-radius:6px; padding:8px 14px; cursor:pointer; }
+  button, label.btn-secondary{ font-family:inherit; font-size:13px; font-weight:700; border:none; border-radius:6px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; }
   .btn-primary{ background:var(--accent); color:#FFFDFB; }
   .btn-secondary{ background:transparent; color:var(--ink-soft); border:1px solid var(--paper-line); }
   .btn-danger{ background:transparent; color:var(--wine); border:1px solid var(--wine); }
@@ -36,31 +37,29 @@
   .badge.pending{ background:var(--wine-soft); color:var(--wine); }
   #errorArea{ display:none; background:var(--wine-soft); border:1px solid var(--wine); color:var(--wine); border-radius:8px; padding:9px 12px; font-size:13px; margin-bottom:14px; white-space:pre-line; }
   #errorArea.show{ display:block; }
-  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .overlay{ position:fixed; inset:0; background:rgba(59,42,30,0.45); display:flex; align-items:center; justify-content:center; z-index:50; }
   .overlay.hidden{ display:none; }
   .modal{ background:var(--card); border-radius:10px; padding:22px; max-width:380px; width:92%; }
   .modal h3{ margin:0 0 14px; font-size:16px; }
-  .persona-btns{ display:flex; gap:10px; margin-top:16px; }
-  .persona-btns button{ flex:1; padding:14px; font-size:14px; }
   .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .summary-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin-top:10px; }
-  .summary-item{ background:var(--surface); border:1px solid var(--paper-line); border-radius:8px; padding:9px 11px; }
+  .summary-item{ background:var(--surface); border:1px solid var(--paper-line); border-radius:8px; padding:9px 11px; cursor:pointer; text-align:left; }
+  .summary-item:hover{ border-color:var(--accent); }
   .summary-item .num{ font-size:18px; font-weight:700; }
   .summary-item .lbl{ font-size:11px; color:var(--ink-soft); }
+  #evidencePanel{ margin-top:12px; background:var(--surface); border:1px solid var(--paper-line); border-radius:8px; padding:12px; display:none; }
+  #evidencePanel.show{ display:block; }
+  #evidencePanel h4{ margin:0 0 8px; font-size:13px; }
+  #evidencePanel ul{ margin:0; padding-left:18px; font-size:12.5px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px;">
-    <div>
-      <h1>플랜두씨 다이어리</h1>
-      <div class="sub">Plan → ToDo → Do → See</div>
-    </div>
-    <div class="toolbar">
-      <span id="personaBadge" class="badge pending"></span>
-      <button class="btn-secondary btn-small" id="switchPersonaBtn">인물 전환</button>
-    </div>
+  <header>
+    <h1>플랜두씨 다이어리</h1>
+    <div class="sub">Plan → ToDo → Do → See</div>
   </header>
+  <div id="publicNotice">지금은 로그인이 없어 이 링크를 아는 사람은 누구나 볼 수 있습니다. 남이 봐도 괜찮은 내용만 넣으세요.</div>
 
   <div id="errorArea"></div>
 
@@ -74,7 +73,7 @@
   </section>
 
   <section class="card">
-    <h2>Plan</h2>
+    <h2>Plan — 계획 세우기</h2>
     <form id="planForm" class="row">
       <div class="field"><label>제목</label><input id="p_title" required></div>
       <div class="field"><label>시작일</label><input id="p_start" type="date" required></div>
@@ -117,26 +116,17 @@
   </section>
 
   <section class="card" id="seeSection" style="display:none;">
-    <h2>See — <span id="seePlanTitle"></span></h2>
+    <h2>See — 돌아보기: <span id="seePlanTitle"></span></h2>
     <button class="btn-secondary" id="computeSeeBtn">집계 계산</button>
+    <p style="font-size:12px; color:var(--ink-soft); margin:8px 0 0;">숫자를 누르면 그 숫자가 나온 기록을 아래에서 볼 수 있습니다.</p>
     <div class="summary-grid" id="seeGrid"></div>
+    <div id="evidencePanel"><h4 id="evidenceTitle"></h4><ul id="evidenceList"></ul></div>
     <div class="field" style="margin-top:12px;">
       <label>다음 Plan으로 넘길 조정 내용</label>
       <textarea id="nextPlanNote" rows="2" style="width:100%;"></textarea>
     </div>
     <button class="btn-primary" id="saveSeeBtn" style="margin-top:8px;">다음 Plan으로 넘기기 저장</button>
   </section>
-</div>
-
-<div class="overlay" id="personaOverlay">
-  <div class="modal">
-    <h3>공개 심사 — 합성 인물 선택</h3>
-    <p style="font-size:13px; color:var(--ink-soft); margin:0;">계정·로그인 없이 A 또는 B 인물로 이 브라우저 임시 세션이 만들어집니다. 서버가 범위를 강제로 격리합니다.</p>
-    <div class="persona-btns">
-      <button class="btn-primary" id="pickA">인물 A</button>
-      <button class="btn-primary" id="pickB">인물 B</button>
-    </div>
-  </div>
 </div>
 
 <div class="overlay hidden" id="doModal">
@@ -165,24 +155,20 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let persona = null;
 let plans = [];
 let selectedPlanId = null;
 let todos = [];
 let pendingDoTodoId = null;
 let pendingDoKey = null;
 let pendingConfirm = null;
+let lastAggregate = null;
 
 function showError(msg){ $('errorArea').textContent = msg; $('errorArea').classList.add('show'); }
 function clearError(){ $('errorArea').classList.remove('show'); $('errorArea').textContent=''; }
 function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function api(path, opts={}){
-  const res = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
-    credentials: 'same-origin',
-  });
+  const res = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) } });
   let body = null;
   try{ body = await res.json(); }catch(_){}
   if(!res.ok){
@@ -192,46 +178,11 @@ async function api(path, opts={}){
   return body;
 }
 
-// ---------- persona / session ----------
-async function initSession(){
-  const s = await api('/api/session');
-  persona = s.persona;
-  if(!persona){
-    $('personaOverlay').classList.remove('hidden');
-  } else {
-    $('personaOverlay').classList.add('hidden');
-    renderPersonaBadge();
-    await loadPlans();
-  }
-}
-function renderPersonaBadge(){
-  const b = $('personaBadge');
-  b.textContent = `인물 ${persona}`;
-  b.className = 'badge ' + (persona === 'A' ? 'done' : 'pending');
-}
-$('pickA').addEventListener('click', ()=> choosePersona('A'));
-$('pickB').addEventListener('click', ()=> choosePersona('B'));
-async function choosePersona(p){
-  try{
-    await api('/api/session', { method:'POST', body: JSON.stringify({ persona: p }) });
-    persona = p;
-    $('personaOverlay').classList.add('hidden');
-    renderPersonaBadge();
-    await loadPlans();
-  }catch(e){ showError(e.message); }
-}
-$('switchPersonaBtn').addEventListener('click', async ()=>{
-  await api('/api/session', { method:'DELETE' });
-  location.reload();
-});
-
 // ---------- plans ----------
 async function loadPlans(){
   clearError();
-  try{
-    plans = await api('/api/plans');
-    renderPlans();
-  }catch(e){ showError(e.message); }
+  try{ plans = await api('/api/plans'); renderPlans(); }
+  catch(e){ showError(e.message); }
 }
 function renderPlans(){
   const body = $('planBody');
@@ -282,6 +233,8 @@ function selectPlan(p){
   $('seePlanTitle').textContent = p.title;
   $('todoSection').style.display = 'block';
   $('seeSection').style.display = 'block';
+  $('evidencePanel').classList.remove('show');
+  $('seeGrid').innerHTML = '';
   renderPlans();
   loadTodos();
 }
@@ -296,10 +249,8 @@ async function loadTodos(){
   if(status) params.set('status', status);
   if(q) params.set('q', q);
   if(sort) params.set('sort', sort);
-  try{
-    todos = await api('/api/todos?' + params.toString());
-    renderTodos();
-  }catch(e){ showError(e.message); }
+  try{ todos = await api('/api/todos?' + params.toString()); renderTodos(); }
+  catch(e){ showError(e.message); }
 }
 function renderTodos(){
   const body = $('todoBody');
@@ -310,6 +261,7 @@ function renderTodos(){
   }
   for(const t of todos){
     const tr = document.createElement('tr');
+    tr.id = 'todo-' + t.id;
     const doneBadge = t.status === 'done' ? '<span class="badge done">완료</span>' : '<span class="badge pending">진행중</span>';
     tr.innerHTML = `
       <td>${escapeHtml(t.title)}</td>
@@ -324,20 +276,11 @@ function renderTodos(){
     body.appendChild(tr);
   }
   body.querySelectorAll('[data-toggle]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      if(btn.dataset.status === 'done'){
-        uncompleteTodo(btn.dataset.toggle);
-      } else {
-        openDoModal(btn.dataset.toggle);
-      }
-    });
+    btn.addEventListener('click', ()=> btn.dataset.status === 'done' ? uncompleteTodo(btn.dataset.toggle) : openDoModal(btn.dataset.toggle));
   });
   body.querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      openConfirm('이 ToDo를 삭제할까요?', async ()=>{
-        await api(`/api/todos?id=${btn.dataset.del}`, { method:'DELETE' });
-        await loadTodos();
-      });
+      openConfirm('이 ToDo를 삭제할까요?', async ()=>{ await api(`/api/todos?id=${btn.dataset.del}`, { method:'DELETE' }); await loadTodos(); });
     });
   });
 }
@@ -360,16 +303,14 @@ $('todoForm').addEventListener('submit', async (e)=>{
 $('t_applyBtn').addEventListener('click', loadTodos);
 async function uncompleteTodo(id){
   clearError();
-  try{
-    await api(`/api/todos?id=${id}`, { method:'PUT', body: JSON.stringify({ status:'in_progress' }) });
-    await loadTodos();
-  }catch(e){ showError(e.message); }
+  try{ await api(`/api/todos?id=${id}`, { method:'PUT', body: JSON.stringify({ status:'in_progress' }) }); await loadTodos(); }
+  catch(e){ showError(e.message); }
 }
 
 // ---------- Do modal (idempotency) ----------
 function openDoModal(todoId){
   pendingDoTodoId = todoId;
-  pendingDoKey = crypto.randomUUID(); // 이 완료 시도 전체에서 재시도해도 같은 key 재사용
+  pendingDoKey = crypto.randomUUID(); // 이 완료 시도 안에서는 재시도해도 같은 key 재사용 → 서버가 중복 차단
   const now = new Date();
   $('do_start').value = toLocalInput(new Date(now.getTime() - 30*60000));
   $('do_end').value = toLocalInput(now);
@@ -391,7 +332,7 @@ $('doSubmit').addEventListener('click', async ()=>{
       ended_at: new Date($('do_end').value).toISOString(),
       actual_minutes: Number($('do_minutes').value),
       blocked_reason: $('do_blocked').value.trim() || null,
-      idempotency_key: pendingDoKey, // 같은 key로 재시도해도 서버가 중복을 막음
+      idempotency_key: pendingDoKey,
     })});
     $('doModal').classList.add('hidden');
     pendingDoTodoId = null; pendingDoKey = null;
@@ -399,28 +340,49 @@ $('doSubmit').addEventListener('click', async ()=>{
   }catch(e){ showError(e.message); }
 });
 
-// ---------- See ----------
+// ---------- See + 드릴다운 ----------
 $('computeSeeBtn').addEventListener('click', async ()=>{
   clearError();
-  try{
-    const agg = await api(`/api/see?plan_id=${selectedPlanId}`);
-    renderSee(agg);
-  }catch(e){ showError(e.message); }
+  try{ lastAggregate = await api(`/api/see?plan_id=${selectedPlanId}`); renderSee(lastAggregate); }
+  catch(e){ showError(e.message); }
 });
 function renderSee(agg){
   const grid = $('seeGrid');
   grid.innerHTML = '';
+  $('evidencePanel').classList.remove('show');
   const items = [
-    ['계획 수', agg.plan_count], ['완료 수', agg.done_count], ['지연 수', agg.delayed_count],
-    ['막힘 수', agg.blocked_count], ['예상(분)', agg.expected_minutes_sum], ['실제(분)', agg.actual_minutes_sum],
-    ['차이(분)', agg.diff_minutes],
+    ['plan_count','계획 수'], ['done_count','완료 수'], ['delayed_count','지연 수'], ['blocked_count','막힘 수'],
+    ['expected_minutes_sum','예상(분)'], ['actual_minutes_sum','실제(분)'],
   ];
-  for(const [lbl, num] of items){
-    const div = document.createElement('div');
+  for(const [key, lbl] of items){
+    const div = document.createElement('button');
+    div.type = 'button';
     div.className = 'summary-item';
-    div.innerHTML = `<div class="num">${escapeHtml(num)}</div><div class="lbl">${escapeHtml(lbl)}</div>`;
+    div.innerHTML = `<div class="num">${escapeHtml(agg[key])}</div><div class="lbl">${escapeHtml(lbl)}</div>`;
+    div.addEventListener('click', ()=> showEvidence(key, lbl));
     grid.appendChild(div);
   }
+  const diffDiv = document.createElement('div');
+  diffDiv.className = 'summary-item';
+  diffDiv.innerHTML = `<div class="num">${escapeHtml(agg.diff_minutes)}</div><div class="lbl">차이(분)</div>`;
+  grid.appendChild(diffDiv);
+}
+function showEvidence(key, lbl){
+  const list = (lastAggregate.evidence && lastAggregate.evidence[key]) || [];
+  $('evidenceTitle').textContent = `"${lbl}" 근거 기록 (${list.length}건) — ToDo 목록에서 해당 항목으로 스크롤하려면 클릭`;
+  const ul = $('evidenceList');
+  ul.innerHTML = '';
+  if(list.length === 0){ ul.innerHTML = '<li>해당하는 기록이 없습니다.</li>'; }
+  for(const item of list){
+    const li = document.createElement('li');
+    const detail = item.due_date ? ` (마감 ${escapeHtml(item.due_date)})`
+      : item.expected_minutes != null ? ` (예상 ${escapeHtml(item.expected_minutes)}분)`
+      : item.actual_minutes != null ? ` (실제 ${escapeHtml(item.actual_minutes)}분, ${escapeHtml(item.started_at)}~${escapeHtml(item.ended_at)})`
+      : '';
+    li.innerHTML = `<a href="#todo-${escapeHtml(item.todo_id || item.id)}" style="color:var(--accent); cursor:pointer;">${escapeHtml(item.title)}</a>${detail}`;
+    ul.appendChild(li);
+  }
+  $('evidencePanel').classList.add('show');
 }
 $('saveSeeBtn').addEventListener('click', async ()=>{
   clearError();
@@ -428,9 +390,7 @@ $('saveSeeBtn').addEventListener('click', async ()=>{
   if(!plan) return;
   try{
     await api('/api/see', { method:'POST', body: JSON.stringify({
-      plan_id: selectedPlanId,
-      period_start: plan.period_start,
-      period_end: plan.period_end,
+      plan_id: selectedPlanId, period_start: plan.period_start, period_end: plan.period_end,
       next_plan_note: $('nextPlanNote').value.trim(),
     })});
     $('nextPlanNote').value = '';
@@ -445,7 +405,7 @@ $('exportBtn').addEventListener('click', async ()=>{
     const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `plando-${persona}-${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url; a.download = `plando-${new Date().toISOString().slice(0,10)}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   }catch(e){ showError(e.message); }
@@ -470,7 +430,7 @@ $('importFile').addEventListener('change', (e)=>{
   reader.readAsText(file);
 });
 $('resetBtn').addEventListener('click', ()=>{
-  openConfirm('현재 인물의 모든 Plan·ToDo·Do·See 기록을 삭제할까요? 되돌릴 수 없습니다.', async ()=>{
+  openConfirm('모든 Plan·ToDo·Do·See 기록을 삭제할까요? 되돌릴 수 없습니다.', async ()=>{
     await api('/api/backup?action=reset', { method:'POST' });
     selectedPlanId = null;
     $('todoSection').style.display='none'; $('seeSection').style.display='none';
@@ -492,7 +452,7 @@ $('confirmOk').addEventListener('click', async ()=>{
 });
 
 // ---------- init ----------
-initSession().catch(e=> showError(e.message));
+loadPlans();
 </script>
 </body>
 </html>
